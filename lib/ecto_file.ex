@@ -1,0 +1,2 @@
+defmodule EctoFile do
+end
