@@ -1,8 +1,8 @@
-defmodule EctoFile.Mixfile do
+defmodule Ectophile.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :ecto_file,
+    [app: :ectophile,
      version: "0.0.1",
      elixir: "~> 1.0",
      build_embedded: Mix.env == :prod,

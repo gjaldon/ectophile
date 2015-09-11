@@ -1,4 +1,4 @@
-defmodule EctoFileTest do
+defmodule EctophileTest do
   use ExUnit.Case
 
   test "the truth" do
