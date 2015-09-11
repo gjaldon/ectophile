@@ -1,32 +1,39 @@
 defmodule Ectophile.Mixfile do
   use Mix.Project
 
+  @version "0.1.0"
+
   def project do
     [app: :ectophile,
-     version: "0.0.1",
+     version: @version,
      elixir: "~> 1.0",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps]
+     deps: deps,
+     description: "File upload extension for Ecto",
+     package: package,
+     name: "Ectophile",
+     docs: [source_ref: "v#{@version}",
+            source_url: "https://github.com/gjaldon/ectophile"]]
   end
 
-  # Configuration for the OTP application
-  #
-  # Type `mix help compile.app` for more information
+  defp package do
+    [contributors: ["Gabriel Jaldon"],
+     licenses: ["MIT"],
+     links: %{github: "https://github.com/gjaldon/ectophile"},
+     files: ~w(mix.exs README.md lib)]
+  end
+
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :ecto]]
   end
 
-  # Dependencies can be Hex packages:
-  #
-  #   {:mydep, "~> 0.3.0"}
-  #
-  # Or git/path repositories:
-  #
-  #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-  #
-  # Type `mix help deps` for more examples and options
   defp deps do
-    []
+    [{:ecto, "~> 1.0"},
+     {:postgrex, "~> 0.9.1", optional: true},
+     {:mariaex, "~> 0.4.1", optional: true},
+     {:ex_doc, "~> 0.7", only: :docs},
+     {:earmark, "~> 0.1", only: :docs},
+     {:inch_ex, only: :docs}]
   end
 end
