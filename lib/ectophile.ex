@@ -1,13 +1,10 @@
 defmodule Ectophile do
 
-  defmacro __using__(opts) do
-    otp_app = Keyword.fetch!(opts, :otp_app)
-
+  defmacro __using__(_) do
     quote do
       import unquote(__MODULE__), only: [attachment_fields: 1]
       @before_compile Ectophile
 
-      @ecto_file_otp_app unquote(otp_app)
       Module.register_attribute(__MODULE__, :ectophile_fields, accumulate: true)
     end
   end
@@ -40,7 +37,7 @@ defmodule Ectophile do
 
   import Ecto.Changeset
 
-  def put_file(%{model: model} = changeset, file_fields) do
+  def put_file(changeset, file_fields) do
     %{upload_path: upload_path} = file_fields
 
     if upload = get_change(changeset, file_fields.upload) do
@@ -48,7 +45,7 @@ defmodule Ectophile do
       file_id  = generate_file_id()
       filepath = priv_path(upload_path, file_id, filename)
       File.cp!(tmp_path, filepath)
-      File.cp!(tmp_path, model.__struct__.build_priv_path(upload_path, file_id, filename))
+      File.cp!(tmp_path, build_priv_path(upload_path, file_id, filename))
 
       changeset
       |> put_change(file_fields.filename, filename)
@@ -66,7 +63,7 @@ defmodule Ectophile do
 
     if new_filepath && old_filepath do
       File.rm!(old_filepath)
-      File.rm!(model.__struct__.build_priv_path(old_filepath))
+      File.rm!(build_priv_path(old_filepath))
     end
     changeset
   end
@@ -82,6 +79,19 @@ defmodule Ectophile do
   defp priv_path(upload_path, file_id, filename) do
     file_id = file_id <> Path.extname(filename)
     Path.join(["priv/static", upload_path, file_id])
+  end
+
+  def build_priv_path(filepath) do
+    Application.app_dir(otp_app(), filepath)
+  end
+
+  def build_priv_path(upload_path, file_id, filename) do
+    file_id = file_id <> Path.extname(filename)
+    Application.app_dir(otp_app(), Path.join(["priv/static", upload_path, file_id]))
+  end
+
+  defp otp_app do
+    Application.get_env(:ectophile, :otp_app) || raise ":otp_app key required for :ectophile env"
   end
 
   defmacro __before_compile__(env) do
@@ -106,24 +116,15 @@ defmodule Ectophile do
   def helpers(ectophile_fields) do
     quote do
       def ensure_upload_paths_exist do
-        Ectophile.ensure_upload_paths_exist(__MODULE__, unquote(Macro.escape(ectophile_fields)))
-      end
-
-      def build_priv_path(filepath) do
-        Application.app_dir(@ecto_file_otp_app, filepath)
-      end
-
-      def build_priv_path(upload_path, file_id, filename) do
-        file_id = file_id <> Path.extname(filename)
-        Application.app_dir(@ecto_file_otp_app, Path.join(["priv/static", upload_path, file_id]))
+        Ectophile.ensure_upload_paths_exist(unquote(Macro.escape(ectophile_fields)))
       end
     end
   end
 
-  def ensure_upload_paths_exist(mod, ectophile_fields) do
+  def ensure_upload_paths_exist(ectophile_fields) do
     for %{upload_path: upload_path} <- ectophile_fields do
       priv_path = priv_path(upload_path)
-      build_priv_path = mod.build_priv_path(upload_path)
+      build_priv_path = build_priv_path(upload_path)
 
       unless File.exists?(priv_path) do
         File.mkdir_p!(priv_path)
