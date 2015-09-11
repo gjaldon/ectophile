@@ -30,10 +30,6 @@ defmodule Ectophile do
     end
   end
 
-  def static_path(filepath) do
-    "/" <> Path.relative_to(filepath, "/priv/static")
-  end
-
 
   import Ecto.Changeset
 
