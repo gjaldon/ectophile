@@ -40,8 +40,7 @@ defmodule Ectophile do
       %{path: tmp_path, filename: filename} = upload
       file_id  = generate_file_id()
       filepath = priv_path(upload_path, file_id, filename)
-      File.cp!(tmp_path, filepath)
-      File.cp!(tmp_path, build_priv_path(upload_path, file_id, filename))
+      copy_files(tmp_path, upload_path, file_id, filename)
 
       changeset
       |> put_change(file_fields.filename, filename)
@@ -51,17 +50,34 @@ defmodule Ectophile do
     end
   end
 
-  # TODO: Fix rm_file!
-
   def rm_file(%{model: model} = changeset, file_fields) do
     new_filepath = get_change(changeset, file_fields.filepath)
     old_filepath = Map.get(model, file_fields.filepath)
 
     if new_filepath && old_filepath do
-      File.rm!(old_filepath)
-      File.rm!(build_priv_path(old_filepath))
+      rm_files(old_filepath)
     end
     changeset
+  end
+
+  if Mix.Project.config[:build_embedded] do
+    defp copy_files(tmp_path, upload_path, file_id, filename) do
+      File.cp!(tmp_path, priv_path(upload_path, file_id, filename))
+      File.cp!(tmp_path, build_priv_path(upload_path, file_id, filename))
+    end
+
+    defp rm_files(old_filepath) do
+      File.rm!("." <> old_filepath)
+      File.rm!(build_priv_path(old_filepath))
+    end
+  else
+    defp copy_files(tmp_path, upload_path, file_id, filename) do
+      File.cp!(tmp_path, priv_path(upload_path, file_id, filename))
+    end
+
+    defp rm_files(old_filepath) do
+      File.rm!("." <> old_filepath)
+    end
   end
 
   defp generate_file_id() do
@@ -90,25 +106,6 @@ defmodule Ectophile do
     Application.get_env(:ectophile, :otp_app) || raise ":otp_app key required for :ectophile env"
   end
 
-  defmacro __before_compile__(env) do
-    ectophile_fields = Module.get_attribute(env.module, :ectophile_fields)
-
-    callbacks =
-      for file_fields <- ectophile_fields do
-        file_fields = Macro.escape(file_fields)
-
-        quote do
-          before_insert Ectophile, :put_file, [unquote(file_fields)]
-          before_insert Ectophile, :rm_file,  [unquote(file_fields)]
-        end
-      end
-
-    quote do
-      unquote(callbacks)
-      Module.eval_quoted __ENV__, [Ectophile.helpers(unquote(Macro.escape(ectophile_fields)))]
-    end
-  end
-
   def helpers(ectophile_fields) do
     quote do
       def ensure_upload_paths_exist do
@@ -129,6 +126,26 @@ defmodule Ectophile do
       unless File.exists?(build_priv_path) do
         File.mkdir_p!(build_priv_path)
       end
+    end
+  end
+
+  defmacro __before_compile__(env) do
+    ectophile_fields = Module.get_attribute(env.module, :ectophile_fields)
+
+    callbacks =
+      for file_fields <- ectophile_fields do
+        file_fields = Macro.escape(file_fields)
+
+        quote do
+          before_insert Ectophile, :put_file, [unquote(file_fields)]
+          before_update Ectophile, :put_file, [unquote(file_fields)]
+          before_update Ectophile, :rm_file,  [unquote(file_fields)]
+        end
+      end
+
+    quote do
+      unquote(callbacks)
+      Module.eval_quoted __ENV__, [Ectophile.helpers(unquote(Macro.escape(ectophile_fields)))]
     end
   end
 end
