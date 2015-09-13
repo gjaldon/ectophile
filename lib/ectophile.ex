@@ -9,8 +9,7 @@ defmodule Ectophile do
     end
   end
 
-  defmacro attachment_fields(name, opts \\ []) do
-    name = Macro.escape(name)
+  defmacro attachment_fields(name, opts \\ []) when is_atom(name) do
     filename_field = :"#{name}_filename"
     upload_field   = :"#{name}_upload"
     upload_path    = opts[:upload_path] || "#{name}/uploads"
@@ -36,15 +35,11 @@ defmodule Ectophile do
 
   def put_file(changeset, file_fields) do
     %{upload_path: upload_path} = file_fields
-    IO.puts "here ----------"
-    IO.inspect changeset
 
     if upload = get_change(changeset, file_fields.upload) do
-      IO.puts "there's a change in avatar_upload"
       %{path: tmp_path, filename: filename} = upload
       file_id  = generate_file_id()
       filepath = priv_path(upload_path, file_id, filename)
-      IO.inspect(filepath)
       copy_files(tmp_path, upload_path, file_id, filename)
 
       changeset
@@ -60,6 +55,15 @@ defmodule Ectophile do
     old_filepath = Map.get(model, file_fields.filepath)
 
     if new_filepath && old_filepath do
+      rm_files(old_filepath)
+    end
+    changeset
+  end
+
+  def rm_file_on_delete(%{model: model} = changeset, file_fields) do
+    old_filepath = Map.get(model, file_fields.filepath)
+
+    if old_filepath do
       rm_files(old_filepath)
     end
     changeset
@@ -122,6 +126,7 @@ defmodule Ectophile do
           before_insert Ectophile, :put_file, [unquote(file_fields)]
           before_update Ectophile, :put_file, [unquote(file_fields)]
           before_update Ectophile, :rm_file,  [unquote(file_fields)]
+          after_delete Ectophile, :rm_file_on_delete, [unquote(file_fields)]
         end
       end
 

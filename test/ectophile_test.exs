@@ -18,7 +18,7 @@ defmodule EctophileTest do
 
     def changeset(model, params \\ :empty) do
       model
-      |> cast(params, ~w(avatar_upload), ~w())
+      |> cast(params, ~w(), ~w(avatar_upload))
     end
   end
 
@@ -26,7 +26,7 @@ defmodule EctophileTest do
     ensure_upload_paths_exist(User)
 
     on_exit fn ->
-      File.rm_rf Path.expand "../priv/static/avatar"
+      File.rm_rf Path.expand "../priv/", __DIR__
     end
     :ok
   end
@@ -35,8 +35,37 @@ defmodule EctophileTest do
     params = %{avatar_upload: fake_upload()}
     user = TestRepo.insert! User.changeset(%User{}, params)
 
-    IO.inspect user
     assert user.avatar
-    assert File.exists? user.avatar
+    assert user.avatar_filename == params.avatar_upload.filename
+    assert File.exists? Path.expand(".." <> user.avatar, __DIR__)
+  end
+
+  test "uploads file on update" do
+    user = TestRepo.insert! %User{}
+    params = %{avatar_upload: fake_upload()}
+    user = TestRepo.update! User.changeset(user, params)
+
+    assert user.avatar
+    assert user.avatar_filename == params.avatar_upload.filename
+    assert File.exists? Path.expand(".." <> user.avatar, __DIR__)
+  end
+
+  test "removes old file on update" do
+    params = %{avatar_upload: fake_upload()}
+    user = User.changeset(%User{}, params)
+           |> TestRepo.insert!
+           |> Map.put(:avatar_upload, nil)
+    TestRepo.update! User.changeset(user, params)
+
+    refute File.exists? Path.expand(".." <> user.avatar, __DIR__)
+  end
+
+  test "removes file on delete" do
+    params = %{avatar_upload: fake_upload()}
+    user = User.changeset(%User{}, params) |> TestRepo.insert!
+
+    TestRepo.delete! user
+
+    refute File.exists? Path.expand(".." <> user.avatar, __DIR__)
   end
 end
