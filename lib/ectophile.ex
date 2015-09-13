@@ -5,53 +5,50 @@ defmodule Ectophile do
       import unquote(__MODULE__), only: [attachment_fields: 1]
       @before_compile Ectophile
 
-      Module.register_attribute(__MODULE__, :ectophile_fields, accumulate: true)
+      Module.register_attribute(__MODULE__, :ectophile_data, accumulate: true)
     end
   end
 
   defmacro attachment_fields(name, opts \\ []) do
     quote do
       name = unquote(name)
-      filename_field = :"#{name}_filename"
-      upload_field   = :"#{name}_upload"
-      upload_path    = unquote(opts)[:upload_path] || "#{name}/uploads"
-      ectophile_fields = %{
-        filepath: name,
-        filename: filename_field,
+      upload_field = :"#{name}_upload"
+      upload_path  = unquote(opts)[:upload_path] || "#{name}/uploads"
+      ectophile_data = %{
+        filefield: name,
         upload: upload_field,
         upload_path: upload_path
       }
-      Ecto.Schema.field(name)
-      Ecto.Schema.field(filename_field)
+      Ecto.Schema.field(name, Ectophile.Type)
       Ecto.Schema.field(upload_field, :any, virtual: true)
 
-      @ectophile_fields ectophile_fields
+      @ectophile_data ectophile_data
     end
   end
 
 
   import Ecto.Changeset
 
-  def put_file(changeset, file_fields) do
-    %{upload_path: upload_path} = file_fields
+  def put_file(changeset, file_data) do
+    %{upload_path: upload_path} = file_data
 
-    if upload = get_change(changeset, file_fields.upload) do
+    if upload = get_change(changeset, file_data.upload) do
       %{path: tmp_path, filename: filename} = upload
       file_id  = generate_file_id()
       filepath = priv_path(upload_path, file_id, filename)
       copy_files(tmp_path, upload_path, file_id, filename)
+      map = %{filename: filename, filepath: "/" <> filepath}
 
       changeset
-      |> put_change(file_fields.filename, filename)
-      |> put_change(file_fields.filepath, "/" <> filepath)
+      |> put_change(file_data.filefield, map)
     else
       changeset
     end
   end
 
-  def rm_file(%{model: model} = changeset, file_fields) do
-    new_filepath = get_change(changeset, file_fields.filepath)
-    old_filepath = Map.get(model, file_fields.filepath)
+  def rm_file(%{model: model} = changeset, %{filefield: filefield}) do
+    new_filepath = get_change(changeset, filefield)
+    old_filepath = Map.get(model, filefield)[:filepath]
 
     if new_filepath && old_filepath do
       rm_files(old_filepath)
@@ -59,8 +56,8 @@ defmodule Ectophile do
     changeset
   end
 
-  def rm_file_on_delete(%{model: model} = changeset, file_fields) do
-    old_filepath = Map.get(model, file_fields.filepath)
+  def rm_file_on_delete(%{model: model} = changeset, %{filefield: filefield}) do
+    old_filepath = Map.get(model, filefield)[:filepath]
 
     if old_filepath do
       rm_files(old_filepath)
@@ -115,24 +112,24 @@ defmodule Ectophile do
   end
 
   defmacro __before_compile__(env) do
-    ectophile_fields = Module.get_attribute(env.module, :ectophile_fields)
+    ectophile_data = Module.get_attribute(env.module, :ectophile_data)
 
     callbacks =
-      for file_fields <- ectophile_fields do
-        file_fields = Macro.escape(file_fields)
+      for file_data <- ectophile_data do
+        file_data = Macro.escape(file_data)
 
         quote do
-          before_insert Ectophile, :put_file, [unquote(file_fields)]
-          before_update Ectophile, :put_file, [unquote(file_fields)]
-          before_update Ectophile, :rm_file,  [unquote(file_fields)]
-          after_delete Ectophile, :rm_file_on_delete, [unquote(file_fields)]
+          before_insert Ectophile, :put_file, [unquote(file_data)]
+          before_update Ectophile, :put_file, [unquote(file_data)]
+          before_update Ectophile, :rm_file,  [unquote(file_data)]
+          after_delete Ectophile, :rm_file_on_delete, [unquote(file_data)]
         end
       end
 
     helpers =
       quote do
-        def __ectophile_fields__ do
-          unquote(Macro.escape(ectophile_fields))
+        def __ectophile_data__ do
+          unquote(Macro.escape(ectophile_data))
         end
       end
 

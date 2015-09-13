@@ -32,6 +32,7 @@ defmodule Ectophile.Mixfile do
     [{:ecto, "~> 1.0"},
      {:postgrex, "~> 0.9.1", optional: true},
      {:mariaex, "~> 0.4.1", optional: true},
+     {:poison, "~> 1.0", optional: true},
      {:plug, "~> 1.0", only: :test},
      {:ex_doc, "~> 0.7", only: :docs},
      {:earmark, "~> 0.1", only: :docs},

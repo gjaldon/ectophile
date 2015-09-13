@@ -3,8 +3,7 @@ defmodule Ecto.Integration.Migration do
 
   def change do
     create table(:users) do
-      add :avatar, :string
-      add :avatar_filename, :string
+      add :avatar, :jsonb
     end
   end
 end

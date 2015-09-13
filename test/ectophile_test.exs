@@ -34,21 +34,21 @@ defmodule EctophileTest do
 
   test "uploads file on insert" do
     params = %{avatar_upload: fake_upload()}
-    user = TestRepo.insert! User.changeset(%User{}, params)
+    %{avatar: avatar} = TestRepo.insert! User.changeset(%User{}, params)
 
-    assert user.avatar
-    assert user.avatar_filename == params.avatar_upload.filename
-    assert File.exists? Path.expand(".." <> user.avatar, __DIR__)
+    assert avatar
+    assert avatar.filename == params.avatar_upload.filename
+    assert File.exists? Path.expand(".." <> avatar.filepath, __DIR__)
   end
 
   test "uploads file on update" do
     user = TestRepo.insert! %User{}
     params = %{avatar_upload: fake_upload()}
-    user = TestRepo.update! User.changeset(user, params)
+    %{avatar: avatar} = TestRepo.update! User.changeset(user, params)
 
-    assert user.avatar
-    assert user.avatar_filename == params.avatar_upload.filename
-    assert File.exists? Path.expand(".." <> user.avatar, __DIR__)
+    assert avatar
+    assert avatar.filename == params.avatar_upload.filename
+    assert File.exists? Path.expand(".." <> avatar.filepath, __DIR__)
   end
 
   test "removes old file on update" do
@@ -58,7 +58,7 @@ defmodule EctophileTest do
            |> Map.put(:avatar_upload, nil)
     TestRepo.update! User.changeset(user, params)
 
-    refute File.exists? Path.expand(".." <> user.avatar, __DIR__)
+    refute File.exists? Path.expand(".." <> user.avatar.filepath, __DIR__)
   end
 
   test "removes file on delete" do
@@ -67,6 +67,6 @@ defmodule EctophileTest do
 
     TestRepo.delete! user
 
-    refute File.exists? Path.expand(".." <> user.avatar, __DIR__)
+    refute File.exists? Path.expand(".." <> user.avatar.filepath, __DIR__)
   end
 end
