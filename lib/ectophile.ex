@@ -106,29 +106,6 @@ defmodule Ectophile do
     Application.get_env(:ectophile, :otp_app) || raise ":otp_app key required for :ectophile env"
   end
 
-  def helpers(ectophile_fields) do
-    quote do
-      def ensure_upload_paths_exist do
-        Ectophile.ensure_upload_paths_exist(unquote(Macro.escape(ectophile_fields)))
-      end
-    end
-  end
-
-  def ensure_upload_paths_exist(ectophile_fields) do
-    for %{upload_path: upload_path} <- ectophile_fields do
-      priv_path = priv_path(upload_path)
-      build_priv_path = build_priv_path(upload_path)
-
-      unless File.exists?(priv_path) do
-        File.mkdir_p!(priv_path)
-      end
-
-      unless File.exists?(build_priv_path) do
-        File.mkdir_p!(build_priv_path)
-      end
-    end
-  end
-
   defmacro __before_compile__(env) do
     ectophile_fields = Module.get_attribute(env.module, :ectophile_fields)
 
@@ -143,9 +120,16 @@ defmodule Ectophile do
         end
       end
 
+    helpers =
+      quote do
+        def __ectophile_fields__ do
+          unquote(Macro.escape(ectophile_fields))
+        end
+      end
+
     quote do
       unquote(callbacks)
-      Module.eval_quoted __ENV__, [Ectophile.helpers(unquote(Macro.escape(ectophile_fields)))]
+      unquote(helpers)
     end
   end
 end
