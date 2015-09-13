@@ -23,15 +23,28 @@ defmodule MyApp.User do
 end
 ```
 
-`attachment_fields/2` in the above example, defines three different fields which are:
+`attachment_fields/2` in the above example, defines two different fields which are:
 
-  - `field :avatar, :string`
-  - `field :avatar_filename, :string`
+  - `field :avatar, Ectophile.Type`
   - `field :avatar_upload, :any, virtual: true`
 
-The `:avatar` field is where the path to the file in your filesystem is saved and `:avatar_upload` is the field we'll use for file uploads.
+The `:avatar` field is where the path to the file in your filesystem and filename is saved. `:avatar_upload` is the field we'll use for file uploads.
 
-Keep in mind that you will need to create the necessary `migration` to add the `Ectophile` fields to your model.
+Keep in mind that you will need to create the necessary `migration` to add the `Ectophile` fields to your model like so:
+
+```
+defmodule SampleMigration do
+  use Ecto.Migration
+
+  def change do
+    create table(:users) do
+      add :email
+      add :avatar, :jsonb #=> The column we need for Ectophile's custom field
+      timestamps
+    end
+  end
+end
+```
 
 In your application's top-level supervisor's `start/2` function, add the following to setup the directories where your files will be uploaded:
 
