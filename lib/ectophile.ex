@@ -10,6 +10,7 @@ defmodule Ectophile do
   end
 
   defmacro attachment_fields(name, opts \\ []) do
+    name = Macro.escape(name)
     filename_field = :"#{name}_filename"
     upload_field   = :"#{name}_upload"
     upload_path    = opts[:upload_path] || "#{name}/uploads"
@@ -35,11 +36,15 @@ defmodule Ectophile do
 
   def put_file(changeset, file_fields) do
     %{upload_path: upload_path} = file_fields
+    IO.puts "here ----------"
+    IO.inspect changeset
 
     if upload = get_change(changeset, file_fields.upload) do
+      IO.puts "there's a change in avatar_upload"
       %{path: tmp_path, filename: filename} = upload
       file_id  = generate_file_id()
       filepath = priv_path(upload_path, file_id, filename)
+      IO.inspect(filepath)
       copy_files(tmp_path, upload_path, file_id, filename)
 
       changeset
