@@ -9,19 +9,18 @@ defmodule Ectophile do
     end
   end
 
-  defmacro attachment_fields(name, opts \\ []) when is_atom(name) do
-    filename_field = :"#{name}_filename"
-    upload_field   = :"#{name}_upload"
-    upload_path    = opts[:upload_path] || "#{name}/uploads"
-    ectophile_fields = %{
-      filepath: name,
-      filename: filename_field,
-      upload: upload_field,
-      upload_path: upload_path
-    }
-    ectophile_fields = Macro.escape(ectophile_fields)
-
-    quote bind_quoted: binding do
+  defmacro attachment_fields(name, opts \\ []) do
+    quote do
+      name = unquote(name)
+      filename_field = :"#{name}_filename"
+      upload_field   = :"#{name}_upload"
+      upload_path    = unquote(opts)[:upload_path] || "#{name}/uploads"
+      ectophile_fields = %{
+        filepath: name,
+        filename: filename_field,
+        upload: upload_field,
+        upload_path: upload_path
+      }
       Ecto.Schema.field(name)
       Ecto.Schema.field(filename_field)
       Ecto.Schema.field(upload_field, :any, virtual: true)

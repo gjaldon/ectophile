@@ -13,7 +13,8 @@ defmodule EctophileTest do
     use Ecto.Model
 
     schema "users" do
-      attachment_fields :avatar
+      avatar = :avatar
+      attachment_fields avatar
     end
 
     def changeset(model, params \\ :empty) do
