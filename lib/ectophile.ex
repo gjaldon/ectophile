@@ -98,8 +98,8 @@ defmodule Ectophile do
     Path.join(["priv/static", upload_path, file_id])
   end
 
-  def build_priv_path(filepath) do
-    Application.app_dir(otp_app(), filepath)
+  def build_priv_path(upload_path) do
+    Application.app_dir(otp_app(), Path.join(["priv/static", upload_path]))
   end
 
   def build_priv_path(upload_path, file_id, filename) do
