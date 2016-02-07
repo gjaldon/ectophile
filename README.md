@@ -32,7 +32,7 @@ The `:avatar` field is where the path to the file in your filesystem and filenam
 
 Keep in mind that you will need to create the necessary `migration` to add the `Ectophile` fields to your model like so:
 
-```
+```elixir
 defmodule SampleMigration do
   use Ecto.Migration
 
@@ -44,6 +44,15 @@ defmodule SampleMigration do
     end
   end
 end
+```
+
+Also, set the `:otp_app` in your config like:
+
+```elixir
+# config/config.exs
+use Mix.Config
+
+config :ectophile, otp_app: :yourapp
 ```
 
 In your application's top-level supervisor's `start/2` function, add the following to setup the directories where your files will be uploaded:
